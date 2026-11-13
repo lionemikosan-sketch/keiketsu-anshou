@@ -1,0 +1,21 @@
+{
+ "name": "経穴暗唱カード",
+ "short_name": "経穴暗唱",
+ "start_url": "./",
+ "display": "standalone",
+ "background_color": "#edf0ee",
+ "theme_color": "#17201c",
+ "lang": "ja",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="十二経脈と督脈・任脈の361穴を流注の順にタップで暗唱するフラッシュカード">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="経穴暗唱">
+<meta name="theme-color" content="#edf0ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111614" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-family:system-ui,sans-serif;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>経穴暗唱カード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Home (mode select) → Play (single card, tap = next) → Result sheet. Card accent follows the meridian's five-phase color. */
+:root{
+  --bg:#edf0ee; --surface:#fafbfa; --ink:#17201c; --mute:#66716c; --faint:#b9c2bd; --line:#d6ddd9;
+  --ng:#c43d2c; --ok:#1f7a55;
+  --wood:#2f8a5a; --fire:#d1442f; --earth:#b98310; --metal:#6f7f8f; --water:#2d4f9f; --gov:#6b4ca0; --conc:#a2437a;
+  --f-pt:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-ui:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111614; --surface:#1a211e; --ink:#e6ece9; --mute:#93a19a; --faint:#45514b; --line:#2b3531;
+  --ng:#ff7a66; --ok:#5cc996;
+  --wood:#5cc48a; --fire:#ff7b61; --earth:#e5b84a; --metal:#a9b8c6; --water:#86a3ff; --gov:#b69de6; --conc:#e88cbd;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111614; --surface:#1a211e; --ink:#e6ece9; --mute:#93a19a; --faint:#45514b; --line:#2b3531;
+  --ng:#ff7a66; --ok:#5cc996;
+  --wood:#5cc48a; --fire:#ff7b61; --earth:#e5b84a; --metal:#a9b8c6; --water:#86a3ff; --gov:#b69de6; --conc:#e88cbd;
+  color-scheme:dark}
+
+html{box-sizing:border-box;height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.6;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible,.tile:focus-visible{outline:2px solid var(--acc,var(--ink));outline-offset:2px}
+
+.view{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
+/* ---------- HOME ---------- */
+.hd{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:6px}
+.hd h1{margin:0;font-family:var(--f-pt);font-weight:800;font-size:30px;letter-spacing:.04em;line-height:1.2}
+.hd p{margin:2px 0 0;color:var(--mute);font-size:12.5px;letter-spacing:.06em}
+.toggles{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pill-toggle{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12.5px;white-space:nowrap}
+.pill-toggle .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.pill-toggle[aria-pressed="true"] .dot{background:var(--ok)}
+
+.label{font-size:11.5px;letter-spacing:.14em;color:var(--mute);font-weight:700;margin:0 0 8px}
+
+.cont{background:var(--ink);color:var(--bg);border-radius:20px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px}
+.cont h2{margin:0;font-size:19px;font-weight:700;letter-spacing:.04em}
+.flow{display:flex;flex-wrap:wrap;gap:4px 2px;font-size:12.5px;opacity:.8;align-items:center}
+.flow span.on{opacity:1;font-weight:700}
+.flow i{font-style:normal;opacity:.5;margin:0 2px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid color-mix(in srgb,var(--bg) 35%,transparent);background:transparent;color:var(--bg);border-radius:999px;padding:5px 11px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--bg);color:var(--ink);border-color:var(--bg);font-weight:700}
+.cont-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.9;background:none;border:0;padding:4px 0}
+.check .box{width:18px;height:18px;border-radius:5px;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;line-height:1}
+.btn-go{flex:1;min-width:150px;border:0;border-radius:14px;background:var(--bg);color:var(--ink);font-weight:700;font-size:16px;padding:13px 16px;letter-spacing:.06em}
+.btn-resume{width:100%;border:1px dashed color-mix(in srgb,var(--bg) 45%,transparent);background:transparent;color:var(--bg);border-radius:14px;padding:10px 14px;font-size:13.5px;text-align:left}
+.btn-resume b{font-weight:700}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:12px 12px 12px 16px;display:flex;flex-direction:column;gap:2px;overflow:hidden;min-width:0}
+.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--acc)}
+.tile .s{font-family:var(--f-pt);font-weight:800;font-size:21px;line-height:1.25;display:flex;align-items:baseline;gap:6px}
+.tile .s small{font-family:var(--f-ui);font-weight:500;font-size:11.5px;color:var(--mute)}
+.tile .f{font-size:11.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .bar{height:4px;border-radius:2px;background:var(--line);margin-top:8px;overflow:hidden}
+.tile .bar i{display:block;height:100%;background:var(--acc);border-radius:2px}
+.tile .st{font-size:11px;color:var(--mute);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.tile .done{position:absolute;right:10px;top:10px;font-size:10.5px;font-weight:700;color:var(--acc);border:1.5px solid var(--acc);border-radius:999px;padding:0 7px;line-height:18px}
+
+.recent{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--surface);border-radius:16px;overflow:hidden}
+.lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--line)}
+.lrow:first-child{border-top:0}
+.lrow .dots{display:flex;gap:2px}
+.lrow .dots i{width:7px;height:22px;border-radius:3px;background:var(--acc)}
+.lrow .t{font-weight:700;font-size:14px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .d{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:11px;font-weight:700;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.badge.clear{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.badge.fail{background:color-mix(in srgb,var(--ng) 14%,transparent);color:var(--ng)}
+.badge.quit{background:var(--line);color:var(--mute)}
+.empty{padding:18px 14px;color:var(--mute);font-size:13px}
+.linkbtn{background:none;border:0;color:var(--mute);font-size:13px;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline}
+
+/* ---------- PLAY ---------- */
+#play{padding-block:0;overflow:hidden;display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+.ptop{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;padding-top:10px;max-width:560px;width:100%;margin:0 auto}
+.icon{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:18px;line-height:1;padding:0}
+.icon:disabled{opacity:.35}
+.pmeta{text-align:center;min-width:0}
+.pmeta .mn{font-size:13px;font-weight:700;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--acc)}
+.pmeta .ct{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.prog{max-width:560px;width:100%;margin:10px auto 0;height:5px;border-radius:3px;background:var(--line);overflow:hidden;display:flex;gap:2px}
+.prog i{display:block;height:100%;background:var(--acc);border-radius:3px;transition:width .12s ease-out}
+.prog.multi{background:transparent}
+.prog.multi b{flex:var(--n) 1 0;background:var(--line);border-radius:3px;overflow:hidden}
+.prog.multi b i{background:var(--c)}
+
+.stage{flex:1;min-height:0;display:flex;align-items:stretch;justify-content:center;padding-block:14px}
+.card{position:relative;width:100%;max-width:560px;border-radius:28px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;touch-action:manipulation;overflow:hidden;padding:20px 14px}
+.card::after{content:"";position:absolute;inset:auto 0 0;height:8px;background:var(--acc)}
+.card .prev{position:absolute;top:18px;left:0;right:0;text-align:center;font-size:14px;color:var(--mute);letter-spacing:.08em;font-family:var(--f-pt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 16px}
+.card .num{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;letter-spacing:.12em}
+.pt{font-family:var(--f-pt);font-weight:800;line-height:1;letter-spacing:.04em;font-size:min(25vw,148px,15vh);white-space:nowrap;text-align:center}
+.pt ruby{ruby-position:over;ruby-align:center}
+.pt rt{font-family:var(--f-ui);font-weight:500;font-size:.2em;letter-spacing:.14em;color:var(--mute);padding-bottom:.25em}
+.nofuri .pt rt{visibility:hidden}
+.pt.mer{font-size:min(10.5vw,56px,8vh);letter-spacing:.06em}
+.pt.mer rt{font-size:.3em;letter-spacing:.1em}
+.card .sub{font-size:13.5px;color:var(--mute);letter-spacing:.08em;text-align:center}
+.card .sub b{color:var(--acc)}
+.card.flash{animation:pop .16s cubic-bezier(.2,.9,.3,1.3)}
+.card.flash .pt{animation:slide .16s cubic-bezier(.2,.8,.2,1)}
+.card.back .pt{animation:slideb .16s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{transform:scale(.975)}to{transform:none}}
+@keyframes slide{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes slideb{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+.ring{position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 0 var(--acc)}
+.card.flash .ring{animation:ring .28s ease-out}
+@keyframes ring{from{box-shadow:inset 0 0 0 5px var(--acc)}to{box-shadow:inset 0 0 0 0 var(--acc)}}
+
+.pbot{max-width:560px;width:100%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px;padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
+.btn-ng{border:1.5px solid var(--ng);color:var(--ng);background:transparent;border-radius:16px;padding:14px 10px;font-weight:700;font-size:15px;letter-spacing:.04em}
+.btn-ng:disabled{opacity:.3}
+.btn-ok{border:0;background:var(--acc);color:var(--surface);border-radius:16px;padding:14px 10px;font-weight:700;font-size:15px;letter-spacing:.04em}
+.timer{font-variant-numeric:tabular-nums}
+
+/* ---------- RESULT SHEET ---------- */
+.scrim{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 45%,transparent);display:flex;align-items:flex-end;justify-content:center;z-index:20;animation:fade .15s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:560px;max-height:88%;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:20px max(18px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;animation:up .2s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.sheet h3{margin:0;font-family:var(--f-pt);font-weight:800;font-size:26px;line-height:1.3;letter-spacing:.03em}
+.sheet h3 em{font-style:normal;color:var(--ng)}
+.sheet h3.clear em{color:var(--ok)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mute)}
+.stats b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.chain{display:flex;flex-wrap:wrap;gap:5px}
+.chain span{font-family:var(--f-pt);font-weight:600;font-size:14px;border-radius:7px;padding:2px 7px;background:var(--bg);color:var(--ink)}
+.chain span.no{background:transparent;border:1.5px solid var(--ng);color:var(--ng);font-weight:800}
+.chain span.rest{background:transparent;color:var(--faint);border:1px dashed var(--line)}
+.mer-line{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12.5px}
+.mer-line span{display:flex;align-items:center;gap:5px}
+.mer-line i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.mer-line .x{color:var(--ng);font-weight:700}
+.mer-line .n{color:var(--faint)}
+.actions{display:flex;flex-direction:column;gap:8px}
+.actions button{border-radius:14px;padding:13px;font-weight:700;font-size:15px;border:1px solid var(--line);background:var(--bg)}
+.actions .primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;animation:fade .15s;white-space:nowrap}
+
+/* ---------- LOG ---------- */
+.logtop{display:flex;align-items:center;gap:12px}
+.logtop h2{margin:0;font-size:20px}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.confirm button{border-radius:10px;padding:7px 12px;border:1px solid var(--line);background:var(--surface);font-size:13px}
+.confirm .danger{border-color:var(--ng);color:var(--ng)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="home" class="view"></div>
+<div id="play" class="view" hidden></div>
+<div id="log" class="view" hidden></div>
+
+<script>
+// ===== 経穴データ（流注順・WHO標準／教科書準拠 361穴） =====
+const RAW = [
+ ["LU","手の太陰肺経","てのたいいんはいけい","肺経","metal",
+  "中府:ちゅうふ 雲門:うんもん 天府:てんぷ 侠白:きょうはく 尺沢:しゃくたく 孔最:こうさい 列欠:れっけつ 経渠:けいきょ 太淵:たいえん 魚際:ぎょさい 少商:しょうしょう"],
+ ["LI","手の陽明大腸経","てのようめいだいちょうけい","大腸経","metal",
+  "商陽:しょうよう 二間:じかん 三間:さんかん 合谷:ごうこく 陽渓:ようけい 偏歴:へんれき 温溜:おんる 下廉:げれん 上廉:じょうれん 手三里:てのさんり 曲池:きょくち 肘髎:ちゅうりょう 手五里:てのごり 臂臑:ひじゅ 肩髃:けんぐう 巨骨:ここつ 天鼎:てんてい 扶突:ふとつ 禾髎:かりょう 迎香:げいこう"],
+ ["ST","足の陽明胃経","あしのようめいいけい","胃経","earth",
+  "承泣:しょうきゅう 四白:しはく 巨髎:こりょう 地倉:ちそう 大迎:だいげい 頬車:きょうしゃ 下関:げかん 頭維:ずい 人迎:じんげい 水突:すいとつ 気舎:きしゃ 欠盆:けつぼん 気戸:きこ 庫房:こぼう 屋翳:おくえい 膺窓:ようそう 乳中:にゅうちゅう 乳根:にゅうこん 不容:ふよう 承満:しょうまん 梁門:りょうもん 関門:かんもん 太乙:たいいつ 滑肉門:かつにくもん 天枢:てんすう 外陵:がいりょう 大巨:だいこ 水道:すいどう 帰来:きらい 気衝:きしょう 髀関:ひかん 伏兎:ふくと 陰市:いんし 梁丘:りょうきゅう 犢鼻:とくび 足三里:あしのさんり 上巨虚:じょうこきょ 条口:じょうこう 下巨虚:げこきょ 豊隆:ほうりゅう 解渓:かいけい 衝陽:しょうよう 陥谷:かんこく 内庭:ないてい 厲兌:れいだ"],
+ ["SP","足の太陰脾経","あしのたいいんひけい","脾経","earth",
+  "隠白:いんぱく 大都:だいと 太白:たいはく 公孫:こうそん 商丘:しょうきゅう 三陰交:さんいんこう 漏谷:ろうこく 地機:ちき 陰陵泉:いんりょうせん 血海:けっかい 箕門:きもん 衝門:しょうもん 府舎:ふしゃ 腹結:ふっけつ 大横:だいおう 腹哀:ふくあい 食竇:しょくとく 天渓:てんけい 胸郷:きょうきょう 周栄:しゅうえい 大包:だいほう"],
+ ["HT","手の少陰心経","てのしょういんしんけい","心経","fire",
+  "極泉:きょくせん 青霊:せいれい 少海:しょうかい 霊道:れいどう 通里:つうり 陰郄:いんげき 神門:しんもん 少府:しょうふ 少衝:しょうしょう"],
+ ["SI","手の太陽小腸経","てのたいようしょうちょうけい","小腸経","fire",
+  "少沢:しょうたく 前谷:ぜんこく 後渓:こうけい 腕骨:わんこつ 陽谷:ようこく 養老:ようろう 支正:しせい 小海:しょうかい 肩貞:けんてい 臑兪:じゅゆ 天宗:てんそう 秉風:へいふう 曲垣:きょくえん 肩外兪:けんがいゆ 肩中兪:けんちゅうゆ 天窓:てんそう 天容:てんよう 顴髎:けんりょう 聴宮:ちょうきゅう"],
+ ["BL","足の太陽膀胱経","あしのたいようぼうこうけい","膀胱経","water",
+  "睛明:せいめい 攅竹:さんちく 眉衝:びしょう 曲差:きょくさ 五処:ごしょ 承光:しょうこう 通天:つうてん 絡却:らっきゃく 玉枕:ぎょくちん 天柱:てんちゅう 大杼:だいじょ 風門:ふうもん 肺兪:はいゆ 厥陰兪:けついんゆ 心兪:しんゆ 督兪:とくゆ 膈兪:かくゆ 肝兪:かんゆ 胆兪:たんゆ 脾兪:ひゆ 胃兪:いゆ 三焦兪:さんしょうゆ 腎兪:じんゆ 気海兪:きかいゆ 大腸兪:だいちょうゆ 関元兪:かんげんゆ 小腸兪:しょうちょうゆ 膀胱兪:ぼうこうゆ 中膂兪:ちゅうりょゆ 白環兪:はっかんゆ 上髎:じょうりょう 次髎:じりょう 中髎:ちゅうりょう 下髎:げりょう 会陽:えよう 承扶:しょうふ 殷門:いんもん 浮郄:ふげき 委陽:いよう 委中:いちゅう 附分:ふぶん 魄戸:はっこ 膏肓:こうこう 神堂:しんどう 譩譆:いき 膈関:かくかん 魂門:こんもん 陽綱:ようこう 意舎:いしゃ 胃倉:いそう 肓門:こうもん 志室:ししつ 胞肓:ほうこう 秩辺:ちっぺん 合陽:ごうよう 承筋:しょうきん 承山:しょうざん 飛揚:ひよう 跗陽:ふよう 崑崙:こんろん 僕参:ぼくしん 申脈:しんみゃく 金門:きんもん 京骨:けいこつ 束骨:そっこつ 足通谷:あしのつうこく 至陰:しいん"],
+ ["KI","足の少陰腎経","あしのしょういんじんけい","腎経","water",
+  "湧泉:ゆうせん 然谷:ねんこく 太渓:たいけい 大鍾:だいしょう 水泉:すいせん 照海:しょうかい 復溜:ふくりゅう 交信:こうしん 築賓:ちくひん 陰谷:いんこく 横骨:おうこつ 大赫:だいかく 気穴:きけつ 四満:しまん 中注:ちゅうちゅう 肓兪:こうゆ 商曲:しょうきょく 石関:せきかん 陰都:いんと 腹通谷:はらのつうこく 幽門:ゆうもん 歩廊:ほろう 神封:しんぽう 霊墟:れいきょ 神蔵:しんぞう 彧中:いくちゅう 兪府:ゆふ"],
+ ["PC","手の厥陰心包経","てのけっちんしんぽうけい","心包経","fire",
+  "天池:てんち 天泉:てんせん 曲沢:きょくたく 郄門:げきもん 間使:かんし 内関:ないかん 大陵:だいりょう 労宮:ろうきゅう 中衝:ちゅうしょう"],
+ ["TE","手の少陽三焦経","てのしょうようさんしょうけい","三焦経","fire",
+  "関衝:かんしょう 液門:えきもん 中渚:ちゅうしょ 陽池:ようち 外関:がいかん 支溝:しこう 会宗:えそう 三陽絡:さんようらく 四瀆:しとく 天井:てんせい 清冷淵:せいれいえん 消濼:しょうれき 臑会:じゅえ 肩髎:けんりょう 天髎:てんりょう 天牖:てんゆう 翳風:えいふう 瘈脈:けいみゃく 顱息:ろそく 角孫:かくそん 耳門:じもん 和髎:わりょう 糸竹空:しちくくう"],
+ ["GB","足の少陽胆経","あしのしょうようたんけい","胆経","wood",
+  "瞳子髎:どうしりょう 聴会:ちょうえ 上関:じょうかん 頷厭:がんえん 懸顱:けんろ 懸釐:けんり 曲鬢:きょくびん 率谷:そっこく 天衝:てんしょう 浮白:ふはく 頭竅陰:あたまのきょういん 完骨:かんこつ 本神:ほんじん 陽白:ようはく 頭臨泣:あたまのりんきゅう 目窓:もくそう 正営:しょうえい 承霊:しょうれい 脳空:のうくう 風池:ふうち 肩井:けんせい 淵腋:えんえき 輒筋:ちょうきん 日月:じつげつ 京門:けいもん 帯脈:たいみゃく 五枢:ごすう 維道:いどう 居髎:きょりょう 環跳:かんちょう 風市:ふうし 中瀆:ちゅうとく 膝陽関:ひざのようかん 陽陵泉:ようりょうせん 陽交:ようこう 外丘:がいきゅう 光明:こうめい 陽輔:ようほ 懸鍾:けんしょう 丘墟:きゅうきょ 足臨泣:あしのりんきゅう 地五会:ちごえ 侠渓:きょうけい 足竅陰:あしのきょういん"],
+ ["LR","足の厥陰肝経","あしのけっちんかんけい","肝経","wood",
+  "大敦:だいとん 行間:こうかん 太衝:たいしょう 中封:ちゅうほう 蠡溝:れいこう 中都:ちゅうと 膝関:しつかん 曲泉:きょくせん 陰包:いんぽう 足五里:あしのごり 陰廉:いんれん 急脈:きゅうみゃく 章門:しょうもん 期門:きもん"],
+ ["GV","督脈","とくみゃく","督脈","gov",
+  "長強:ちょうきょう 腰兪:ようゆ 腰陽関:こしのようかん 命門:めいもん 懸枢:けんすう 脊中:せきちゅう 中枢:ちゅうすう 筋縮:きんしゅく 至陽:しよう 霊台:れいだい 神道:しんどう 身柱:しんちゅう 陶道:とうどう 大椎:だいつい 瘂門:あもん 風府:ふうふ 脳戸:のうこ 強間:きょうかん 後頂:ごちょう 百会:ひゃくえ 前頂:ぜんちょう 顖会:しんえ 上星:じょうせい 神庭:しんてい 素髎:そりょう 水溝:すいこう 兌端:だたん 齦交:ぎんこう"],
+ ["CV","任脈","にんみゃく","任脈","conc",
+  "会陰:えいん 曲骨:きょっこつ 中極:ちゅうきょく 関元:かんげん 石門:せきもん 気海:きかい 陰交:いんこう 神闕:しんけつ 水分:すいぶん 下脘:げかん 建里:けんり 中脘:ちゅうかん 上脘:じょうかん 巨闕:こけつ 鳩尾:きゅうび 中庭:ちゅうてい 膻中:だんちゅう 玉堂:ぎょくどう 紫宮:しきゅう 華蓋:かがい 璇璣:せんき 天突:てんとつ 廉泉:れんせん 承漿:しょうしょう"]
+];
+const M = RAW.map(([id,name,yomi,short,el,pts])=>({id,name,yomi,short,el,
+  pts:pts.split(/\s+/).map(s=>{const [n,y]=s.split(":");return {n,y};})}));
+const MI = Object.fromEntries(M.map(m=>[m.id,m]));
+const FLOW = M.slice(0,12).map(m=>m.id);   // 流注順12経
+const CVGV = ["GV","CV"];
+
+// ===== 保存（この端末のブラウザ内のみ） =====
+const KEY="keiketsu-anshou-v1";
+let store={logs:[],furi:true,sound:true,contFrom:"LU",contExtra:false};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)store=Object.assign(store,s);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const col=id=>`var(--${MI[id].el})`;
+const ruby=(n,y)=>`<ruby>${esc(n)}<rt>${esc(y)}</rt></ruby>`;
+const fmt=sec=>{sec=Math.max(0,Math.round(sec));return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}`;};
+const fmtDate=t=>{const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}}
+// ===== 効果音「サッ」：ノイズを帯域フィルタで掃き上げて作る =====
+let AC=null,NOISE=null;
+function ac(){
+  try{
+    if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();
+      const len=Math.floor(AC.sampleRate*0.3);NOISE=AC.createBuffer(1,len,AC.sampleRate);
+      const d=NOISE.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;}
+    if(AC.state==="suspended")AC.resume();
+    return AC;
+  }catch(e){return null;}
+}
+function swish(){
+  if(!store.sound)return;const c=ac();if(!c)return;
+  try{
+    const t=c.currentTime+0.002,v=0.88+Math.random()*0.24;   // 毎回わずかに音程を揺らす
+    const src=c.createBufferSource();src.buffer=NOISE;
+    const bp=c.createBiquadFilter();bp.type="bandpass";bp.Q.value=1.4;
+    bp.frequency.setValueAtTime(1100*v,t);bp.frequency.exponentialRampToValueAtTime(5200*v,t+0.075);bp.frequency.exponentialRampToValueAtTime(3200*v,t+0.13);
+    const hp=c.createBiquadFilter();hp.type="highpass";hp.frequency.value=600;
+    const g=c.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.55,t+0.018);g.gain.exponentialRampToValueAtTime(0.0001,t+0.13);
+    src.connect(bp);bp.connect(hp);hp.connect(g);g.connect(c.destination);
+    src.start(t);src.stop(t+0.15);
+  }catch(e){}
+}
+// iPhone は最初のタッチで音声を有効化する
+["touchend","click","keydown"].forEach(ev=>document.addEventListener(ev,()=>{if(store.sound)ac();},{passive:true}));
+function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1800);}
+function show(id){for(const v of ["home","play","log"])$("#"+v).hidden=v!==id;document.body.classList.toggle("nofuri",!store.furi);}
+
+function contIds(from,extra){const i=FLOW.indexOf(from);const ids=FLOW.slice(i<0?0:i);return extra?ids.concat(CVGV):ids;}
+function buildSeq(ids){const seq=[];let gi=0;for(const id of ids){seq.push({k:"m",m:id});MI[id].pts.forEach((p,i)=>seq.push({k:"p",m:id,i,n:p.n,y:p.y,gi:gi++}));}return {seq,total:gi};}
+
+// ===== HOME =====
+function bestFor(id){
+  const ls=store.logs.filter(l=>l.mode==="single"&&l.ids[0]===id);
+  if(!ls.length)return null;
+  const best=Math.max(...ls.map(l=>l.done));
+  const clears=ls.filter(l=>l.status==="clear");
+  const bt=clears.length?Math.min(...clears.map(l=>l.sec)):null;
+  return {best,clears:clears.length,bt,last:ls[0]};
+}
+function logTitle(l){
+  if(l.mode==="single")return MI[l.ids[0]].name;
+  return `連続 ${MI[l.ids[0]].short}→${MI[l.ids[l.ids.length-1]].short}`;
+}
+function logDetail(l){
+  const at=l.fail?`${l.fail.n}（${MI[l.fail.m].short}）`:"";
+  const s=l.status==="clear"?"最後まで":l.status==="fail"?`${at}で断念`:`${at}で中断`;
+  return `${s} · ${l.done}/${l.total} · ${fmt(l.sec)} · ${fmtDate(l.t)}`;
+}
+function logRow(l){
+  const ids=l.mode==="single"?l.ids:[...new Set([l.ids[0],l.fail?l.fail.m:l.ids[l.ids.length-1]])];
+  const b=l.status==="clear"?'<span class="badge clear">完走</span>':l.status==="fail"?'<span class="badge fail">断念</span>':'<span class="badge quit">中断</span>';
+  return `<div class="lrow"><span class="dots">${ids.map(id=>`<i style="--acc:${col(id)}"></i>`).join("")}</span><div style="min-width:0"><div class="t">${esc(logTitle(l))}</div><div class="d">${esc(logDetail(l))}</div></div>${b}</div>`;
+}
+function renderHome(){
+  const ids=contIds(store.contFrom,store.contExtra);
+  const total=ids.reduce((a,id)=>a+MI[id].pts.length,0);
+  const lastCont=store.logs.find(l=>l.mode==="cont");
+  const resume=lastCont&&lastCont.status!=="clear"&&lastCont.fail?lastCont:null;
+  $("#home").innerHTML=`<div class="wrap">
+   <header class="hd"><div><h1>経穴暗唱</h1><p>流注の順に、テンポよく。</p></div>
+    <div class="toggles"><button class="pill-toggle" id="snd" aria-pressed="${store.sound}"><span class="dot"></span>効果音</button>
+    <button class="pill-toggle" id="furi" aria-pressed="${store.furi}"><span class="dot"></span>ふりがな</button></div></header>
+
+   <section class="cont" aria-labelledby="cth">
+    <div><h2 id="cth">連続モード</h2>
+     <div class="flow">${(store.contExtra?FLOW.concat(CVGV):FLOW).map((id,k)=>`${k?"<i>›</i>":""}<span class="${ids.includes(id)?"on":""}" style="${ids.includes(id)?"":"opacity:.45"}">${MI[id].short}</span>`).join("")}</div></div>
+    <div><p class="label" style="color:inherit;opacity:.7;margin-bottom:6px">スタート位置</p>
+     <div class="chips">${FLOW.map(id=>`<button class="chip" data-from="${id}" aria-pressed="${id===store.contFrom}">${MI[id].short}</button>`).join("")}</div></div>
+    <div class="cont-row">
+     <button class="check" id="extra" aria-pressed="${store.contExtra}"><span class="box">${store.contExtra?"✓":""}</span>督脈・任脈も続ける</button>
+    </div>
+    <div class="cont-row"><button class="btn-go" id="goCont">はじめる　<span style="font-weight:500;font-size:13px">${ids.length}経 ${total}穴</span></button></div>
+    ${resume?`<button class="btn-resume" id="resume">前回の続き：<b>${esc(resume.fail.n)}</b>（${MI[resume.fail.m].short}）から再開 →</button>`:""}
+   </section>
+
+   <section><p class="label">個別モード</p>
+    <div class="grid">${M.map(m=>{const b=bestFor(m.id);const pct=b?Math.round(b.best/m.pts.length*100):0;
+      const st=!b?"未挑戦":b.clears?`完走 ${b.clears}回 · ベスト ${fmt(b.bt)}`:b.last.fail?`前回 ${b.last.fail.n}で${b.last.status==="fail"?"断念":"中断"}`:`最高 ${b.best}/${m.pts.length}`;
+      return `<button class="tile" data-one="${m.id}" style="--acc:${col(m.id)}">
+        ${b&&b.clears?'<span class="done">完走</span>':""}
+        <span class="s">${m.short}<small>${m.pts.length}穴</small></span><span class="f">${m.name}</span>
+        <span class="bar"><i style="width:${pct}%"></i></span><span class="st">${esc(st)}</span></button>`;}).join("")}
+    </div></section>
+
+   <section><div class="sec-head"><p class="label">最近の記録</p>${store.logs.length?'<button class="linkbtn" id="toLog">すべて見る</button>':""}</div>
+    <div class="recent">${store.logs.length?store.logs.slice(0,4).map(logRow).join(""):'<div class="empty">まだ記録はありません。カードを最後までタップするか「できなかった」を押すと、ここに残ります。</div>'}</div></section>
+  </div>`;
+  $("#furi").onclick=()=>{store.furi=!store.furi;save();renderHome();show("home");};
+  $("#snd").onclick=()=>{store.sound=!store.sound;save();if(store.sound)swish();renderHome();};
+  $("#extra").onclick=()=>{store.contExtra=!store.contExtra;save();renderHome();};
+  document.querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>{store.contFrom=b.dataset.from;save();renderHome();});
+  $("#goCont").onclick=()=>start({mode:"cont",ids});
+  if(resume)$("#resume").onclick=()=>start({mode:"cont",ids:resume.ids,fromGi:resume.fail.gi});
+  document.querySelectorAll("[data-one]").forEach(b=>b.onclick=()=>start({mode:"single",ids:[b.dataset.one]}));
+  const tl=$("#toLog");if(tl)tl.onclick=renderLog;
+  show("home");
+}
+
+// ===== PLAY =====
+let S=null,tick=null;
+function start({mode,ids,fromGi=0}){
+  const {seq,total}=buildSeq(ids);
+  let k=0;
+  if(fromGi>0){k=seq.findIndex(x=>x.k==="p"&&x.gi===fromGi);if(k<0)k=0;}
+  let items=seq.slice(k);
+  if(k>0)items=[{k:"m",m:seq[k].m,resume:seq[k]}].concat(items);
+  S={mode,ids,items,total,offset:fromGi,idx:0,t0:0,sec:0,running:false,ended:false};
+  $("#play").innerHTML=`
+   <div class="ptop"><button class="icon" id="quit" aria-label="やめる">✕</button>
+    <div class="pmeta"><div class="mn" id="mn"></div><div class="ct"><span id="ct"></span>　<span class="timer" id="tm">0:00</span></div></div>
+    <button class="icon" id="undo" aria-label="1つ戻る">↶</button></div>
+   <div class="prog ${mode==="cont"?"multi":""}" id="prog">${mode==="cont"?ids.map(id=>`<b style="--n:${MI[id].pts.length};--c:${col(id)}"><i data-p="${id}" style="width:0"></i></b>`).join(""):'<i id="pbar" style="width:0"></i>'}</div>
+   <div class="stage"><div class="card" id="card" role="button" tabindex="0" aria-label="できた・次へ"><div class="ring"></div><div class="prev" id="prev"></div><div id="face"></div><div class="num" id="num"></div></div></div>
+   <div class="pbot"><button class="btn-ng" id="ng">✕ できなかった</button><button class="btn-ok" id="ok">○ できた・次へ</button></div>`;
+  const card=$("#card");
+  card.addEventListener("pointerdown",e=>{if(e.isPrimary&&e.button===0){e.preventDefault();next();}});
+  $("#ok").addEventListener("pointerdown",e=>{if(e.isPrimary&&e.button===0){e.preventDefault();next();}});
+  card.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();next();}});
+  $("#ng").onclick=fail;$("#undo").onclick=undo;$("#quit").onclick=quit;
+  show("play");paint(0);card.focus({preventScroll:true});
+}
+function cur(){return S.items[S.idx];}
+function doneCount(){let c=0;for(let j=0;j<S.idx;j++)if(S.items[j].k==="p")c++;return c;}
+function elapsed(){return S.running?S.sec+(performance.now()-S.t0)/1000:S.sec;}
+function startTimer(){if(S.running)return;S.running=true;S.t0=performance.now();clearInterval(tick);tick=setInterval(()=>{const t=$("#tm");if(t&&S)t.textContent=fmt(elapsed());},250);}
+function stopTimer(){if(S&&S.running){S.sec=elapsed();S.running=false;}clearInterval(tick);}
+
+function paint(dir){
+  const it=cur(),m=MI[it.m];
+  const card=$("#card");card.style.setProperty("--acc",col(it.m));
+  $("#play").style.setProperty("--acc",col(it.m));
+  $("#mn").textContent=m.name;
+  const done=S.offset+doneCount();
+  $("#ct").textContent=`${done} / ${S.total}`;
+  if(it.k==="m"){
+    const first=S.idx===0;
+    let sub;
+    if(it.resume)sub=`<b>${esc(it.resume.n)}</b> から再開 · タップでスタート`;
+    else if(first)sub=`${m.pts.length}穴 · タップでスタート`;
+    else sub=`次の経絡 · ${m.pts.length}穴`;
+    $("#face").innerHTML=`<div class="pt mer">${ruby(m.name,m.yomi)}</div><div class="sub">${sub}</div>`;
+    const pv=S.items[S.idx-1];$("#prev").textContent=pv&&pv.k==="p"?`${pv.n} まで完了`:"";
+    $("#num").textContent="";
+  }else{
+    $("#face").innerHTML=`<div class="pt">${ruby(it.n,it.y)}</div>`;
+    const pv=S.items[S.idx-1];
+    $("#prev").textContent=pv&&pv.k==="p"?`${pv.n}　›`:"";
+    $("#num").textContent=`${m.short}　${it.i+1} / ${m.pts.length}`;
+  }
+  $("#ng").disabled=it.k!=="p";
+  $("#undo").disabled=S.idx===0;
+  // progress
+  if(S.mode==="cont"){
+    const doneGi=S.offset+doneCount();let acc=0;
+    for(const id of S.ids){const n=MI[id].pts.length;const w=Math.max(0,Math.min(n,doneGi-acc));const el=$(`[data-p="${id}"]`);if(el)el.style.width=(w/n*100)+"%";acc+=n;}
+  }else{$("#pbar").style.width=(done/S.total*100)+"%";}
+  if(dir){card.classList.remove("flash","back");void card.offsetWidth;card.classList.add(dir>0?"flash":"back");}
+}
+function next(){
+  if(!S||S.ended)return;
+  startTimer();
+  swish();
+  buzz(8);
+  if(S.idx>=S.items.length-1){S.idx++;finish("clear");return;}
+  S.idx++;paint(1);
+}
+function undo(){if(!S||S.ended||S.idx===0)return;S.idx--;paint(-1);}
+function fail(){if(!S||S.ended||cur().k!=="p")return;buzz([30,40,30]);finish("fail");}
+function quit(){
+  if(!S)return;
+  const progressed=S.idx>0&&(doneCount()>0||S.running);
+  if(progressed&&!S.ended){stopTimer();S.ended=true;const it=cur()||{};const failAt=it.k==="p"?it:S.items.slice(S.idx).find(x=>x.k==="p");record("quit",failAt);toast("中断した位置を記録しました");}
+  else stopTimer();
+  S=null;renderHome();
+}
+function record(status,failAt){
+  const l={t:Date.now(),mode:S.mode,ids:S.ids,total:S.total,done:S.offset+doneCount(),status,sec:Math.round(elapsed()),
+    fail:failAt?{m:failAt.m,i:failAt.i,n:failAt.n,gi:failAt.gi}:null};
+  store.logs.unshift(l);store.logs=store.logs.slice(0,300);save();return l;
+}
+function finish(status){
+  stopTimer();S.ended=true;
+  const it=status==="fail"?cur():null;
+  const prevBest=S.mode==="single"?bestFor(S.ids[0]):null;
+  const l=record(status,it);
+  paint(0);
+  const sc=document.createElement("div");sc.className="scrim";
+  let html;
+  if(status==="clear"){
+    const pb=prevBest&&prevBest.bt!=null?(l.sec<prevBest.bt?`ベスト更新（前回 ${fmt(prevBest.bt)}）`:`ベスト ${fmt(prevBest.bt)}`):"初完走";
+    html=`<h3 class="clear"><em>完走</em> ${S.mode==="single"?MI[S.ids[0]].short:S.ids.length+"経"}</h3>
+     <div class="stats"><div><b>${l.done}/${l.total}</b>穴</div><div><b>${fmt(l.sec)}</b>タイム</div>${S.mode==="single"?`<div><b style="font-size:15px;padding-top:6px">${pb}</b>記録</div>`:""}</div>`;
+  }else{
+    const m=MI[it.m];
+    const chain=m.pts.map((p,i)=>`<span class="${i<it.i?"":i===it.i?"no":"rest"}">${esc(p.n)}</span>`).join("");
+    const merLine=S.mode==="cont"?`<div class="mer-line">${S.ids.map(id=>{const k=S.ids.indexOf(id),f=S.ids.indexOf(it.m);return `<span style="--c:${col(id)}" class="${k<f?"":k===f?"x":"n"}"><i></i>${MI[id].short}${k<f?" ✓":k===f?" ✕":""}</span>`;}).join("")}</div>`:"";
+    html=`<h3><em>${esc(it.n)}</em> で断念</h3>
+     <div class="stats"><div><b>${l.done}/${l.total}</b>できた</div><div><b>${fmt(l.sec)}</b>タイム</div></div>
+     ${merLine}<div><p class="label">${m.name}</p><div class="chain">${chain}</div></div>`;
+  }
+  html+=`<div class="actions">${status==="fail"?`<button class="primary" id="rFrom">${esc(it.n)} から再開</button>`:""}
+    <button class="${status==="fail"?"":"primary"}" id="rAgain">最初からもう一度</button><button id="rHome">メニューへ</button></div>`;
+  sc.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(sc);
+  const mode=S.mode,ids=S.ids,from=S.offset;
+  const close=()=>sc.remove();
+  if(status==="fail")$("#rFrom",sc).onclick=()=>{close();start({mode,ids,fromGi:it.gi});};
+  $("#rAgain",sc).onclick=()=>{close();start({mode,ids});};
+  $("#rHome",sc).onclick=()=>{close();S=null;renderHome();};
+  setTimeout(()=>{const b=sc.querySelector(".actions button");b&&b.focus({preventScroll:true});},50);
+}
+
+// ===== LOG =====
+function renderLog(){
+  $("#log").innerHTML=`<div class="wrap">
+   <div class="logtop"><button class="icon" id="lback" aria-label="戻る">←</button><h2>記録</h2></div>
+   <div class="recent">${store.logs.length?store.logs.map(logRow).join(""):'<div class="empty">記録はありません。</div>'}</div>
+   ${store.logs.length?'<div class="confirm" id="clr"><button id="clr1">記録をすべて消す</button></div>':""}
+  </div>`;
+  $("#lback").onclick=renderHome;
+  const c=$("#clr1");if(c)c.onclick=()=>{$("#clr").innerHTML=`<span>${store.logs.length}件の記録を消します。元に戻せません。</span><button class="danger" id="clrY">消す</button><button id="clrN">やめる</button>`;
+    $("#clrY").onclick=()=>{store.logs=[];save();renderLog();};$("#clrN").onclick=renderLog;};
+  show("log");$("#log").scrollTop=0;
+}
+
+// keyboard (PC)
+document.addEventListener("keydown",e=>{
+  if($("#play").hidden||!S||document.querySelector(".scrim"))return;
+  if(e.key===" "||e.key==="ArrowRight"){e.preventDefault();next();}
+  else if(e.key==="ArrowLeft"||e.key==="Backspace"){e.preventDefault();undo();}
+  else if(e.key==="x"||e.key==="X"){fail();}
+  else if(e.key==="Escape"){quit();}
+});
+renderHome();
+</script>
+</body>
+</html>

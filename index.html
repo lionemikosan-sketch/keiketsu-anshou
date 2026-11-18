@@ -56,6 +56,19 @@ button:focus-visible,.tile:focus-visible{outline:2px solid var(--acc,var(--ink))
 .hd{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:6px}
 .hd h1{margin:0;font-family:var(--f-pt);font-weight:800;font-size:30px;letter-spacing:.04em;line-height:1.2}
 .hd p{margin:2px 0 0;color:var(--mute);font-size:12.5px;letter-spacing:.06em}
+.single-head{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.seg{align-self:flex-start;display:inline-flex;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-size:13.5px;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:700}
+.hint{font-size:12.5px;color:var(--mute);margin:0;line-height:1.7}
+.wins{display:flex;gap:6px;flex-wrap:wrap}
+.wins button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--mute)}
+.wins button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:700}
+.newtag{font-size:11px;font-weight:700;letter-spacing:.2em;color:var(--acc);border:1.5px solid var(--acc);border-radius:999px;padding:0 10px 0 12px;line-height:20px;margin-bottom:6px}
+.card.miss{animation:shake .28s ease-out}
+.card.miss .ring{animation:ringng .45s ease-out}
+@keyframes shake{20%{transform:translateX(-7px)}50%{transform:translateX(6px)}80%{transform:translateX(-3px)}}
+@keyframes ringng{from{box-shadow:inset 0 0 0 6px var(--ng)}to{box-shadow:inset 0 0 0 0 var(--ng)}}
 .toggles{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .pill-toggle{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12.5px;white-space:nowrap}
 .pill-toggle .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
@@ -228,7 +241,7 @@ const CVGV = ["GV","CV"];
 
 // ===== 保存（この端末のブラウザ内のみ） =====
 const KEY="keiketsu-anshou-v1";
-let store={logs:[],furi:true,sound:true,contFrom:"LU",contExtra:false};
+let store={logs:[],furi:true,sound:true,contFrom:"LU",contExtra:false,single:"flow",win:0};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)store=Object.assign(store,s);}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 
@@ -272,8 +285,8 @@ function contIds(from,extra){const i=FLOW.indexOf(from);const ids=FLOW.slice(i<0
 function buildSeq(ids){const seq=[];let gi=0;for(const id of ids){seq.push({k:"m",m:id});MI[id].pts.forEach((p,i)=>seq.push({k:"p",m:id,i,n:p.n,y:p.y,gi:gi++}));}return {seq,total:gi};}
 
 // ===== HOME =====
-function bestFor(id){
-  const ls=store.logs.filter(l=>l.mode==="single"&&l.ids[0]===id);
+function bestFor(id,mode="single"){
+  const ls=store.logs.filter(l=>l.mode===mode&&l.ids[0]===id);
   if(!ls.length)return null;
   const best=Math.max(...ls.map(l=>l.done));
   const clears=ls.filter(l=>l.status==="clear");
@@ -282,15 +295,21 @@ function bestFor(id){
 }
 function logTitle(l){
   if(l.mode==="single")return MI[l.ids[0]].name;
+  if(l.mode==="cumul")return `累積 ${MI[l.ids[0]].name}${l.win?`（直近${l.win}穴）`:""}`;
   return `連続 ${MI[l.ids[0]].short}→${MI[l.ids[l.ids.length-1]].short}`;
 }
 function logDetail(l){
+  if(l.mode==="cumul"){
+    const miss=`ミス${(l.misses||[]).length}回`;
+    const s=l.status==="clear"?`全${l.total}周`:`第${l.round}周${l.fail?`（${l.fail.n}）`:""}で中断`;
+    return `${s} · ${miss} · ${fmt(l.sec)} · ${fmtDate(l.t)}`;
+  }
   const at=l.fail?`${l.fail.n}（${MI[l.fail.m].short}）`:"";
   const s=l.status==="clear"?"最後まで":l.status==="fail"?`${at}で断念`:`${at}で中断`;
   return `${s} · ${l.done}/${l.total} · ${fmt(l.sec)} · ${fmtDate(l.t)}`;
 }
 function logRow(l){
-  const ids=l.mode==="single"?l.ids:[...new Set([l.ids[0],l.fail?l.fail.m:l.ids[l.ids.length-1]])];
+  const ids=l.mode!=="cont"?l.ids:[...new Set([l.ids[0],l.fail?l.fail.m:l.ids[l.ids.length-1]])];
   const b=l.status==="clear"?'<span class="badge clear">完走</span>':l.status==="fail"?'<span class="badge fail">断念</span>':'<span class="badge quit">中断</span>';
   return `<div class="lrow"><span class="dots">${ids.map(id=>`<i style="--acc:${col(id)}"></i>`).join("")}</span><div style="min-width:0"><div class="t">${esc(logTitle(l))}</div><div class="d">${esc(logDetail(l))}</div></div>${b}</div>`;
 }
@@ -299,6 +318,7 @@ function renderHome(){
   const total=ids.reduce((a,id)=>a+MI[id].pts.length,0);
   const lastCont=store.logs.find(l=>l.mode==="cont");
   const resume=lastCont&&lastCont.status!=="clear"&&lastCont.fail?lastCont:null;
+  const cumul=store.single==="cumul";
   $("#home").innerHTML=`<div class="wrap">
    <header class="hd"><div><h1>経穴暗唱</h1><p>流注の順に、テンポよく。</p></div>
     <div class="toggles"><button class="pill-toggle" id="snd" aria-pressed="${store.sound}"><span class="dot"></span>効果音</button>
@@ -316,9 +336,17 @@ function renderHome(){
     ${resume?`<button class="btn-resume" id="resume">前回の続き：<b>${esc(resume.fail.n)}</b>（${MI[resume.fail.m].short}）から再開 →</button>`:""}
    </section>
 
-   <section><p class="label">個別モード</p>
-    <div class="grid">${M.map(m=>{const b=bestFor(m.id);const pct=b?Math.round(b.best/m.pts.length*100):0;
-      const st=!b?"未挑戦":b.clears?`完走 ${b.clears}回 · ベスト ${fmt(b.bt)}`:b.last.fail?`前回 ${b.last.fail.n}で${b.last.status==="fail"?"断念":"中断"}`:`最高 ${b.best}/${m.pts.length}`;
+   <section><div class="single-head"><p class="label" style="margin:0">個別モード</p>
+     <div class="seg" role="group" aria-label="個別モードの練習方法">
+      <button data-sm="flow" aria-pressed="${!cumul}">通し</button><button data-sm="cumul" aria-pressed="${cumul}">累積リハーサル</button></div>
+     ${cumul?`<p class="hint">1穴ずつ増やしながら、毎回さかのぼって言い直します。<br>中府 → 中府・雲門 → 中府・雲門・天府 …　間違えたらその周を最初から。</p>
+      <div class="wins" role="group" aria-label="さかのぼる範囲">
+       <button data-win="0" aria-pressed="${!store.win}">毎回いちばん最初から</button><button data-win="10" aria-pressed="${store.win===10}">直近10穴だけ</button></div>`
+     :`<p class="hint">経絡を1つ選び、最初から最後まで通して言います。</p>`}</div>
+    <div class="grid">${M.map(m=>{const b=bestFor(m.id,cumul?"cumul":"single");const pct=b?Math.round(b.best/m.pts.length*100):0;
+      const st=!b?"未挑戦":b.clears?`完走 ${b.clears}回 · ベスト ${fmt(b.bt)}`
+        :cumul?`前回 第${b.last.round}周で中断`
+        :b.last.fail?`前回 ${b.last.fail.n}で${b.last.status==="fail"?"断念":"中断"}`:`最高 ${b.best}/${m.pts.length}`;
       return `<button class="tile" data-one="${m.id}" style="--acc:${col(m.id)}">
         ${b&&b.clears?'<span class="done">完走</span>':""}
         <span class="s">${m.short}<small>${m.pts.length}穴</small></span><span class="f">${m.name}</span>
@@ -334,20 +362,36 @@ function renderHome(){
   document.querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>{store.contFrom=b.dataset.from;save();renderHome();});
   $("#goCont").onclick=()=>start({mode:"cont",ids});
   if(resume)$("#resume").onclick=()=>start({mode:"cont",ids:resume.ids,fromGi:resume.fail.gi});
-  document.querySelectorAll("[data-one]").forEach(b=>b.onclick=()=>start({mode:"single",ids:[b.dataset.one]}));
+  document.querySelectorAll("[data-one]").forEach(b=>b.onclick=()=>start(cumul?{mode:"cumul",ids:[b.dataset.one],win:store.win}:{mode:"single",ids:[b.dataset.one]}));
+  document.querySelectorAll("[data-sm]").forEach(b=>b.onclick=()=>{store.single=b.dataset.sm;save();renderHome();});
+  document.querySelectorAll("[data-win]").forEach(b=>b.onclick=()=>{store.win=+b.dataset.win;save();renderHome();});
   const tl=$("#toLog");if(tl)tl.onclick=renderLog;
   show("home");
 }
 
 // ===== PLAY =====
 let S=null,tick=null;
-function start({mode,ids,fromGi=0}){
+// 累積リハーサル：第r周 = 1〜r番目（直近win穴に絞る場合は r-win+1〜r番目）
+function buildCumul(id,win){
+  const m=MI[id],items=[];
+  m.pts.forEach((_,r)=>{
+    const s=win?Math.max(0,r+1-win):0;
+    items.push({k:"r",m:id,r:r+1,s,e:r});
+    for(let i=s;i<=r;i++)items.push({k:"p",m:id,i,n:m.pts[i].n,y:m.pts[i].y,gi:i,r:r+1,s,e:r});
+  });
+  return items;
+}
+function start({mode,ids,fromGi=0,win=0}){
+  if(mode==="cumul"){
+    S={mode,ids,win,items:buildCumul(ids[0],win),total:MI[ids[0]].pts.length,offset:0,misses:[],retry:null,idx:0,t0:0,sec:0,running:false,ended:false};
+  }else{
   const {seq,total}=buildSeq(ids);
   let k=0;
   if(fromGi>0){k=seq.findIndex(x=>x.k==="p"&&x.gi===fromGi);if(k<0)k=0;}
   let items=seq.slice(k);
   if(k>0)items=[{k:"m",m:seq[k].m,resume:seq[k]}].concat(items);
   S={mode,ids,items,total,offset:fromGi,idx:0,t0:0,sec:0,running:false,ended:false};
+  }
   $("#play").innerHTML=`
    <div class="ptop"><button class="icon" id="quit" aria-label="やめる">✕</button>
     <div class="pmeta"><div class="mn" id="mn"></div><div class="ct"><span id="ct"></span>　<span class="timer" id="tm">0:00</span></div></div>
@@ -364,6 +408,27 @@ function start({mode,ids,fromGi=0}){
 }
 function cur(){return S.items[S.idx];}
 function doneCount(){let c=0;for(let j=0;j<S.idx;j++)if(S.items[j].k==="p")c++;return c;}
+function roundsDone(){if(S.ended&&S.idx>=S.items.length)return S.total;const it=cur();return it?it.r-1:0;}
+function paintCumul(it,m){
+  const card=$("#card");
+  $("#ct").textContent=`第${it.r}周 / ${S.total}周`;
+  if(it.k==="r"){
+    const len=it.e-it.s+1;
+    let sub;
+    if(S.retry&&S.retry.r===it.r)sub=`<b style="color:var(--ng)">✕ ${esc(S.retry.n)}</b> · もう一度この周を最初から`;
+    else if(it.r===1)sub=`${m.pts.length}周まで · タップでスタート`;
+    else sub=`${it.s>0?`${it.s+1}番目から`:"最初から"} ${len}穴 · タップで開始`;
+    $("#face").innerHTML=`<div class="pt mer">第${it.r}周</div><div class="sub">${sub}</div>`;
+    $("#prev").textContent=it.r>1&&!(S.retry&&S.retry.r===it.r)?`第${it.r-1}周 クリア`:"";
+    $("#num").textContent="";
+  }else{
+    $("#face").innerHTML=`${it.i===it.e&&it.r>1?'<div class="newtag">NEW</div>':""}<div class="pt">${ruby(it.n,it.y)}</div>`;
+    const pv=S.items[S.idx-1];
+    $("#prev").textContent=pv&&pv.k==="p"?`${pv.n}　›`:"";
+    $("#num").textContent=`第${it.r}周　${it.i-it.s+1} / ${it.e-it.s+1}`;
+  }
+  $("#pbar").style.width=(roundsDone()/S.total*100)+"%";
+}
 function elapsed(){return S.running?S.sec+(performance.now()-S.t0)/1000:S.sec;}
 function startTimer(){if(S.running)return;S.running=true;S.t0=performance.now();clearInterval(tick);tick=setInterval(()=>{const t=$("#tm");if(t&&S)t.textContent=fmt(elapsed());},250);}
 function stopTimer(){if(S&&S.running){S.sec=elapsed();S.running=false;}clearInterval(tick);}
@@ -372,7 +437,13 @@ function paint(dir){
   const it=cur(),m=MI[it.m];
   const card=$("#card");card.style.setProperty("--acc",col(it.m));
   $("#play").style.setProperty("--acc",col(it.m));
-  $("#mn").textContent=m.name;
+  $("#mn").textContent=S.mode==="cumul"?`${m.name}（累積）`:m.name;
+  if(S.mode==="cumul"){
+    paintCumul(it,m);
+    $("#ng").disabled=it.k!=="p";$("#undo").disabled=S.idx===0;
+    if(dir){card.classList.remove("flash","back","miss");void card.offsetWidth;card.classList.add(dir===2?"miss":dir>0?"flash":"back");}
+    return;
+  }
   const done=S.offset+doneCount();
   $("#ct").textContent=`${done} / ${S.total}`;
   if(it.k==="m"){
@@ -408,28 +479,47 @@ function next(){
   S.idx++;paint(1);
 }
 function undo(){if(!S||S.ended||S.idx===0)return;S.idx--;paint(-1);}
-function fail(){if(!S||S.ended||cur().k!=="p")return;buzz([30,40,30]);finish("fail");}
+function fail(){
+  if(!S||S.ended||cur().k!=="p")return;
+  buzz([30,40,30]);
+  if(S.mode==="cumul"){   // その周の先頭に戻る（記録は続ける）
+    const it=cur();startTimer();
+    S.misses.push({r:it.r,i:it.i,n:it.n});S.retry={r:it.r,n:it.n};
+    let j=S.idx;while(j>0&&S.items[j].k!=="r")j--;
+    S.idx=j;paint(2);return;
+  }
+  finish("fail");
+}
 function quit(){
   if(!S)return;
   const progressed=S.idx>0&&(doneCount()>0||S.running);
-  if(progressed&&!S.ended){stopTimer();S.ended=true;const it=cur()||{};const failAt=it.k==="p"?it:S.items.slice(S.idx).find(x=>x.k==="p");record("quit",failAt);toast("中断した位置を記録しました");}
+  if(progressed&&!S.ended){stopTimer();S.ended=true;const it=cur()||{};
+    const failAt=it.k==="p"?it:it.k==="r"?{m:it.m,i:it.e,n:MI[it.m].pts[it.e].n,gi:it.e}:S.items.slice(S.idx).find(x=>x.k==="p");record("quit",failAt);toast("中断した位置を記録しました");}
   else stopTimer();
   S=null;renderHome();
 }
 function record(status,failAt){
   const l={t:Date.now(),mode:S.mode,ids:S.ids,total:S.total,done:S.offset+doneCount(),status,sec:Math.round(elapsed()),
     fail:failAt?{m:failAt.m,i:failAt.i,n:failAt.n,gi:failAt.gi}:null};
+  if(S.mode==="cumul"){l.done=roundsDone();l.round=Math.min(S.total,l.done+1);l.misses=S.misses;l.win=S.win;}
   store.logs.unshift(l);store.logs=store.logs.slice(0,300);save();return l;
 }
 function finish(status){
   stopTimer();S.ended=true;
   const it=status==="fail"?cur():null;
-  const prevBest=S.mode==="single"?bestFor(S.ids[0]):null;
+  const prevBest=S.mode!=="cont"?bestFor(S.ids[0],S.mode):null;
   const l=record(status,it);
-  paint(0);
+  if(S.mode!=="cumul")paint(0);
   const sc=document.createElement("div");sc.className="scrim";
   let html;
-  if(status==="clear"){
+  if(S.mode==="cumul"){
+    const pb=prevBest&&prevBest.bt!=null?(l.sec<prevBest.bt?`ベスト更新（前回 ${fmt(prevBest.bt)}）`:`ベスト ${fmt(prevBest.bt)}`):"初完走";
+    const cnt={};for(const x of l.misses)cnt[x.i]=(cnt[x.i]||0)+1;
+    const weak=Object.keys(cnt).map(Number).sort((a,b)=>cnt[b]-cnt[a]||a-b);
+    html=`<h3 class="clear"><em>完走</em> ${MI[S.ids[0]].short}（累積）</h3>
+     <div class="stats"><div><b>${l.total}周</b>クリア</div><div><b>${l.misses.length}回</b>ミス</div><div><b>${fmt(l.sec)}</b>タイム</div><div><b style="font-size:15px;padding-top:6px">${pb}</b>記録</div></div>
+     ${weak.length?`<div><p class="label">つまずいた穴</p><div class="chain">${weak.map(i=>`<span class="no">${esc(MI[S.ids[0]].pts[i].n)}${cnt[i]>1?` ×${cnt[i]}`:""}</span>`).join("")}</div></div>`:`<p class="hint" style="margin:0">ノーミスで完走しました。</p>`}`;
+  }else if(status==="clear"){
     const pb=prevBest&&prevBest.bt!=null?(l.sec<prevBest.bt?`ベスト更新（前回 ${fmt(prevBest.bt)}）`:`ベスト ${fmt(prevBest.bt)}`):"初完走";
     html=`<h3 class="clear"><em>完走</em> ${S.mode==="single"?MI[S.ids[0]].short:S.ids.length+"経"}</h3>
      <div class="stats"><div><b>${l.done}/${l.total}</b>穴</div><div><b>${fmt(l.sec)}</b>タイム</div>${S.mode==="single"?`<div><b style="font-size:15px;padding-top:6px">${pb}</b>記録</div>`:""}</div>`;
@@ -445,10 +535,10 @@ function finish(status){
     <button class="${status==="fail"?"":"primary"}" id="rAgain">最初からもう一度</button><button id="rHome">メニューへ</button></div>`;
   sc.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
   document.body.appendChild(sc);
-  const mode=S.mode,ids=S.ids,from=S.offset;
+  const mode=S.mode,ids=S.ids,win=S.win||0;
   const close=()=>sc.remove();
   if(status==="fail")$("#rFrom",sc).onclick=()=>{close();start({mode,ids,fromGi:it.gi});};
-  $("#rAgain",sc).onclick=()=>{close();start({mode,ids});};
+  $("#rAgain",sc).onclick=()=>{close();start({mode,ids,win});};
   $("#rHome",sc).onclick=()=>{close();S=null;renderHome();};
   setTimeout(()=>{const b=sc.querySelector(".actions button");b&&b.focus({preventScroll:true});},50);
 }

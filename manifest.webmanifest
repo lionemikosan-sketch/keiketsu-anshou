@@ -1,10 +1,10 @@
 {
- "name": "経穴暗唱カード",
+ "name": "経穴暗唱スタンプラリー",
  "short_name": "経穴暗唱",
  "start_url": "./",
  "display": "standalone",
- "background_color": "#edf0ee",
- "theme_color": "#17201c",
+ "background_color": "#FFF5EB",
+ "theme_color": "#F26A1B",
  "lang": "ja",
  "icons": [
   {
